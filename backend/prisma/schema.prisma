@@ -1,0 +1,398 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum TaskCategory {
+  DSA
+  CORE_CS
+  FULL_STACK
+  APTITUDE
+}
+
+enum TaskPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum StudyMode {
+  WEEKDAYS_ONLY
+  ALTERNATE_DAYS
+  WEEKENDS_ONLY
+}
+
+enum DsaDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum DsaProblemStatus {
+  SOLVED
+  PENDING
+  REVISION_NEEDED
+}
+
+enum CoreCSSubject {
+  OS
+  DBMS
+  CN
+  OOP
+}
+
+enum LearningStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  REVISION_NEEDED
+}
+
+enum FullStackTechnology {
+  REACT
+  ANGULAR
+  SPRING_BOOT
+  DOTNET
+}
+
+enum StudySessionCategory {
+  DSA
+  CORE_CS
+  FULL_STACK
+  APTITUDE
+}
+
+enum PlacementStatus {
+  WISHLIST
+  APPLIED
+  OA_SCHEDULED
+  OA_CLEARED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_CLEARED
+  SELECTED
+  REJECTED
+}
+
+enum PlacementRound {
+  NONE
+  OA
+  TECHNICAL_1
+  TECHNICAL_2
+  MANAGERIAL
+  HR
+  FINAL
+}
+
+enum InterviewCategory {
+  HR_INTERVIEW
+  BEHAVIORAL
+  DSA_INTERVIEW
+  CORE_CS_INTERVIEW
+  SYSTEM_DESIGN
+  FULL_STACK_INTERVIEW
+}
+
+enum InterviewDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum InterviewQuestionStatus {
+  NOT_STARTED
+  PRACTICED
+  MASTERED
+}
+
+enum MockInterviewType {
+  HR_INTERVIEW
+  BEHAVIORAL
+  DSA_INTERVIEW
+  CORE_CS_INTERVIEW
+  SYSTEM_DESIGN
+  FULL_STACK_INTERVIEW
+}
+
+model User {
+  id              String           @id @default(uuid())
+  name            String
+  email           String           @unique
+  passwordHash    String
+  role            UserRole         @default(STUDENT)
+  tasks           Task[]
+  dsaProblems     DSAProblem[]
+  coreCSProgress  CoreCSProgress[]
+  fullStackItems  FullStackProgress[]
+  studySessions   StudySession[]
+  applications     PlacementApplication[]
+  interviewQuestions InterviewQuestion[]
+  mockInterviews   MockInterview[]
+  resumes          ResumeVersion[]
+  examDates        ExamDate[]
+  opportunities    Opportunity[]
+  studyPreference StudyPreference?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("users")
+}
+
+model Task {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  category    TaskCategory
+  dueDate     DateTime
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(PENDING)
+  completed   Boolean      @default(false)
+  completedAt DateTime?
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId, dueDate])
+  @@index([userId, status])
+  @@map("tasks")
+}
+
+model StudyPreference {
+  id        String    @id @default(uuid())
+  studyMode StudyMode @default(WEEKDAYS_ONLY)
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("study_preferences")
+}
+
+model DSAProblem {
+  id            String           @id @default(uuid())
+  title         String
+  topic         String
+  difficulty    DsaDifficulty
+  status        DsaProblemStatus @default(PENDING)
+  leetcodeLink  String?
+  youtubeLink   String?
+  notes         String?
+  revisionCount Int              @default(0)
+  lastSolvedAt  DateTime?
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([userId, topic])
+  @@index([userId, status])
+  @@index([userId, difficulty])
+  @@map("dsa_problems")
+}
+
+model CoreCSProgress {
+  id        String         @id @default(uuid())
+  subject   CoreCSSubject
+  topic     String
+  status    LearningStatus @default(NOT_STARTED)
+  notes     String?
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime       @updatedAt
+
+  @@unique([userId, subject, topic])
+  @@index([userId, subject])
+  @@index([userId, status])
+  @@map("core_cs_progress")
+}
+
+model FullStackProgress {
+  id         String              @id @default(uuid())
+  technology FullStackTechnology
+  status     LearningStatus      @default(NOT_STARTED)
+  notes      String?
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt  DateTime            @updatedAt
+
+  @@unique([userId, technology])
+  @@index([userId, status])
+  @@map("full_stack_progress")
+}
+
+model StudySession {
+  id              String               @id @default(uuid())
+  date            DateTime
+  durationMinutes Int
+  category        StudySessionCategory
+  notes           String?
+  userId          String
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime             @default(now())
+
+  @@index([userId, date])
+  @@index([userId, category])
+  @@map("study_sessions")
+}
+
+model PlacementApplication {
+  id              String          @id @default(uuid())
+  companyName     String
+  role            String
+  packageLPA      Float
+  location        String
+  applicationDate DateTime
+  deadlineDate    DateTime
+  status          PlacementStatus @default(WISHLIST)
+  round           PlacementRound  @default(NONE)
+  notes           String?
+  jobLink         String?
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, companyName])
+  @@index([userId, role])
+  @@index([userId, location])
+  @@index([userId, deadlineDate])
+  @@map("placement_applications")
+}
+
+model InterviewQuestion {
+  id          String                  @id @default(uuid())
+  question    String
+  category    InterviewCategory
+  difficulty  InterviewDifficulty
+  answerNotes String?
+  userNotes   String?
+  status      InterviewQuestionStatus @default(NOT_STARTED)
+  userId      String
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([userId, category])
+  @@index([userId, status])
+  @@index([userId, difficulty])
+  @@map("interview_questions")
+}
+
+model MockInterview {
+  id            String            @id @default(uuid())
+  company       String
+  interviewType MockInterviewType
+  date          DateTime
+  rating        Int
+  feedback      String?
+  strengths     String?
+  weaknesses    String?
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([userId, date])
+  @@index([userId, interviewType])
+  @@map("mock_interviews")
+}
+
+model ResumeVersion {
+  id                    String   @id @default(uuid())
+  resumeName            String
+  resumeVersion         String
+  targetRole            String
+  lastUpdatedDate       DateTime
+  fileName              String?
+  fileMimeType          String?
+  fileData              String?
+  checklistProjects     Boolean  @default(false)
+  checklistSkills       Boolean  @default(false)
+  checklistEducation    Boolean  @default(false)
+  checklistExperience   Boolean  @default(false)
+  checklistAchievements Boolean  @default(false)
+  checklistCertifications Boolean @default(false)
+  atsContactInformation Boolean  @default(false)
+  atsSkillsSection      Boolean  @default(false)
+  atsProjectsSection    Boolean  @default(false)
+  atsKeywords           Boolean  @default(false)
+  atsFormatting         Boolean  @default(false)
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([userId, targetRole])
+  @@index([userId, lastUpdatedDate])
+  @@map("resume_versions")
+}
+
+// ─── Stage 3 Models ───────────────────────────────────────────────────────────
+
+enum ExamDateType {
+  PLACEMENT
+  EXAM
+  INTERVIEW
+  CONTEST
+}
+
+model ExamDate {
+  id        String       @id @default(uuid())
+  title     String
+  date      DateTime
+  type      ExamDateType
+  notes     String?
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([userId, date])
+  @@map("exam_dates")
+}
+
+enum OpportunityType {
+  HACKATHON
+  INTERNSHIP
+  CONTEST
+  FELLOWSHIP
+}
+
+model Opportunity {
+  id                   String          @id @default(uuid())
+  title                String
+  organizer            String
+  type                 OpportunityType
+  startDate            DateTime
+  endDate              DateTime
+  registrationDeadline DateTime
+  link                 String
+  prizePool            String?
+  teamSize             String?
+  mode                 String?
+  isRegistered         Boolean         @default(false)
+  userId               String
+  user                 User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([userId, type])
+  @@index([userId, registrationDeadline])
+  @@map("opportunities")
+}
